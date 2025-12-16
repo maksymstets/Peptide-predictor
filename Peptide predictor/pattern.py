@@ -30,10 +30,36 @@ def remove_header_fasta(input_file, formatted_fasta_file):
 
 def trypsin_cutter(enzyme_selected, peptides):
     #This function splits the sequence according to the cleavage site.
+    cleavage_sites = []
     with open(enzyme_selected, "r") as infile:
         content = infile.read()
         with open(peptides, "w") as outfile:
-            peptides_list = re.split(r'(?<=[RK])(?!P)', content)
+            for site in range(len(content) - 1):
+                cleavage = False
+                P2 = content[site - 1] if site > 0 else None
+                P1 = content[site]
+                P1_prime = content[site + 1]
+                if (P1 == 'K' or P1 == 'R'):
+                    cleavage = True
+                    if P1_prime == 'P':
+                        if not (P1_prime == 'K' and P2 == 'W'):
+                            cleavage = False
+                        elif not (P1_prime == 'R' and P2 == 'M'):
+                            cleavage = False
+                    if P1 == 'K' and P1_prime == 'D' and (P2 == 'C' or P2 == 'D'):
+                        cleavage = False
+                    if P1 == 'K' and (P1_prime == 'H' or P1_prime == 'Y') and P2 == 'C':
+                        cleavage = False
+                    if P1 == 'R' and P1_prime == 'K' and P2 == 'C':
+                        cleavage = False
+                    if P1 == 'R' and (P1_prime == 'H' or P1_prime == 'R') and P2 == 'R':
+                        cleavage = False
+                if cleavage:
+                    cleavage_sites.append(site + 1)
+            positions = [0] + cleavage_sites + [len(content)]
+            peptides_list = []
+            for i in range(len(positions) - 1):
+                peptides_list.append(content[positions[i]:positions[i + 1]])
             print(len(peptides_list))
             outfile.write(str(peptides_list))
             return outfile
