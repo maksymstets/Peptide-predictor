@@ -1,10 +1,10 @@
 
+
 def main():
     input_file = input("Enter the input FASTA file name: ")
-    
     formatted_fasta_file = "formatted_sequence.txt"
     remove_header_fasta(input_file, formatted_fasta_file)
-    
+    sequence = sequence_maker(formatted_fasta_file)
     enzyme_register = {"Arg-C proteinase": argc_proteinase_logic,
                         "Trypsin": trypsin_logic,
                         "Asp-N endopeptidase": aspn_endopeptidase_logic,
@@ -13,7 +13,15 @@ def main():
                         "Pepsin_pH1.3": pepsin_pH_1_3_logic,
                         "Pepsin_pH_2":pepsin_pH_2_logic, 
                         "Papain": papain_logic}
-    input_enzyme = input("""Choose the enzyme frome the list below. 
+    
+    digestion_mode = input("""Select digestion mode from the list below.
+    1. Single  digestion
+    2. Parallel  digestion
+    3. Sequential digestion
+    Enter the number of digestion mode:""")
+
+    if digestion_mode == "1":
+        input_enzyme = input("""Choose the enzyme frome the list below. 
     Arg-C proteinase 
     Asp-N endopeptidase                     
     Trypsin 
@@ -23,16 +31,44 @@ def main():
     Pepsin_pH_2
     Papain
     Enter the enzyme chosen exactly as shown in the list:""")
-    if input_enzyme  in enzyme_register:
-        sequence = sequence_maker(formatted_fasta_file)
-        enzyme_selection = enzyme_register[input_enzyme]
-        cleavage_sites_finder = enzyme_selection(sequence)
-        peptides_list_generator = peptide_generator(cleavage_sites_finder, sequence)
-        output_filename = f"{input_enzyme.replace(' ', '_')}_peptides.txt"
-        output_writer(peptides_list_generator, cleavage_sites_finder, output_filename)
+        if input_enzyme in enzyme_register:
+            single_digestion(sequence, input_enzyme, enzyme_register)
+        else:
+            print("Please choose a valid enzyme. Write the name exactly as shown in the list.")
+            
+    elif digestion_mode == "2":
+        input_enzyme = input("""Choose the enzyme frome the list below. 
+    Arg-C proteinase 
+    Asp-N endopeptidase                     
+    Trypsin 
+    Chymotrypsin (high specificity)
+    Chymotrypsin (low specificity)
+    Pepsin_pH1.3
+    Pepsin_pH_2
+    Papain
+    Enter the enzyme chosen exactly as shown in the list, separated by a comma:""")
+        enzyme_names = []
+        for enzyme in input_enzyme.split(","):
+            enzymes_chosen = enzyme.strip()
+            enzyme_names.append(enzymes_chosen)
         
+        correct_enzymes = []
+        for enzyme in enzyme_names:
+            if enzyme in enzyme_register:
+                correct_enzymes.append(enzyme)
+            else:
+                print(f"{enzyme} is not a valid enzyme. Please write the name exactly as shown in the list.")
+        if correct_enzymes:
+            parallel_digestion(sequence, input_enzyme, correct_enzymes, enzyme_register)
+            
+        else:
+            print("No valid enzymes were selected for parallel digestion.")
+        
+    elif digestion_mode == 3:
+        sequential_digestion(digestion_mode, enzyme_register)
     else:
-        print("Please choose a valid enzyme. Write the name exactly as shown in the list.")
+        print("Please choose a valid digestion mode from the list.")
+   
 
 def remove_header_fasta(input_file, formatted_fasta_file):
     # This function reads a FASTA file and writes the sequence data to a new file, omitting the header lines.
@@ -51,7 +87,36 @@ def sequence_maker(formatted_fasta_file):
     with open(formatted_fasta_file, "r") as infile:
         content = infile.read()
     return str(content)
+
+def single_digestion(sequence, input_enzyme, enzyme_register):
+    enzyme_selection = enzyme_register[input_enzyme]
+    cleavage_sites_finder = enzyme_selection(sequence)
+    peptides_list_generator = peptide_generator(cleavage_sites_finder, sequence)
+    output_filename = f"{input_enzyme.replace(' ', '_')}_peptides_single_digest.txt"
+    output_writer_single(peptides_list_generator, cleavage_sites_finder, output_filename)
+        
+def parallel_digestion(sequence, input_enzyme, enzyme_names, enzyme_register):
+    all_results = []
+    for input_enzyme in enzyme_names:
+        enzyme_selection = enzyme_register[input_enzyme]
+        cleavage_sites_finder = enzyme_selection(sequence)
+        peptides_list_generator = peptide_generator(cleavage_sites_finder, sequence)
     
+        all_results.append({
+            'enzyme': input_enzyme,
+            'cleavage_sites': cleavage_sites_finder,
+            'peptides': peptides_list_generator
+       })
+    output_filename = f'{"_".join(enzyme_names)}_peptides_parallel_digest.txt'
+    print(str(enzyme_names))
+    parallel_output_writer(all_results, output_filename)
+    print(all_results)
+
+   
+
+def sequential_digestion(formatted_fasta_file, enzyme_register):
+    print("Sequential digestion is not yet implemented.")
+
 def trypsin_logic(content):
     #This function splits the sequence according to the cleavage site. Mimics trypsin behaviour.
     cleavage_sites = []
@@ -197,9 +262,7 @@ def papain_logic(content):
         if cleavage:
             cleavage_sites.append(site + 1)
     return cleavage_sites
-
-            
-        
+       
 def peptide_generator(cleavage_sites, content):
     positions = [0] + cleavage_sites + [len(content)]
     peptides_list = []
@@ -207,14 +270,29 @@ def peptide_generator(cleavage_sites, content):
         peptides_list.append(content[positions[i]:positions[i + 1]])
     return peptides_list
 
-def output_writer(peptides_list, cleavage_sites, output_filename):
+def output_writer_single(peptides_list, cleavage_sites, output_filename):
     with open(output_filename, "w") as outfile:
-        print(f"The quantity of cleavage sites: {len(cleavage_sites)}")
-        print(f"The number of peptides: {len(peptides_list)}")
+        outfile.write(f"The quantity of cleavage sites: {len(cleavage_sites)}\n\n")
+        outfile.write(f"The number of peptides: {len(peptides_list)}\n\n")
         outfile.write(f"The peptides list: {peptides_list}\n\n")
         outfile.write(f"The cleavage sites list: {cleavage_sites}\n\n")
         outfile.write(f"The site-peptide relationship: {dict(zip(peptides_list, cleavage_sites))}")
+        print(f"Results written to {output_filename}")
         return outfile
-        
+
+def parallel_output_writer( all_results, output_filename):
+    with open(output_filename, "w") as outfile:
+        for i, single_result in enumerate(all_results):
+            enzyme_name = single_result['enzyme']
+            peptides_list = single_result['peptides']
+            cleavage_sites = single_result['cleavage_sites']
+            outfile.write(f"Enzyme: {enzyme_name}\n\n")
+            outfile.write(f"The quantity of cleavage sites: {len(cleavage_sites)}\n\n")
+            outfile.write(f"The number of peptides: {len(peptides_list)}\n\n")
+            outfile.write(f"The peptides list: {peptides_list}\n\n")
+            outfile.write(f"The cleavage sites list: {cleavage_sites}\n\n")
+            outfile.write(f"The site-peptide relationship: {dict(zip(peptides_list, cleavage_sites))}\n\n")
+        print(f"Results written to {output_filename}")
+        return outfile
 if __name__ == "__main__":
     main()
