@@ -1,4 +1,4 @@
-
+import sys
 
 def main():
     input_file = input("Enter the input FASTA file name: ")
@@ -34,7 +34,7 @@ def main():
         if input_enzyme in enzyme_register:
             single_digestion(sequence, input_enzyme, enzyme_register)
         else:
-            print("Please choose a valid enzyme. Write the name exactly as shown in the list.")
+            sys.exit("Please choose a valid enzyme. Write the name exactly as shown in the list.")
             
     elif digestion_mode == "2":
         input_enzyme = input("""Choose the enzyme frome the list below. 
@@ -64,8 +64,35 @@ def main():
         else:
             print("No valid enzymes were selected for parallel digestion.")
         
-    elif digestion_mode == 3:
-        sequential_digestion(digestion_mode, enzyme_register)
+    elif digestion_mode == "3":
+        input_enzyme = input("""Choose the enzyme frome the list below. 
+    Arg-C proteinase 
+    Asp-N endopeptidase                     
+    Trypsin 
+    Chymotrypsin (high specificity)
+    Chymotrypsin (low specificity)
+    Pepsin_pH1.3
+    Pepsin_pH_2
+    Papain
+    Enter the enzyme chosen exactly as shown in the list, separated by a comma:""")
+        enzyme_names = []
+        for enzyme in input_enzyme.split(","):
+            enzymes_chosen = enzyme.strip()
+            enzyme_names.append(enzymes_chosen)
+
+        correct_enzymes = []
+        for enzyme in enzyme_names:
+            if enzyme in enzyme_register:
+                correct_enzymes.append(enzyme)
+            else:
+                print(f"{enzyme} is not a valid enzyme. Please write the name exactly as shown in the list.")
+        if correct_enzymes:
+            final_peptides, operations_log = sequential_digestion(sequence, correct_enzymes, enzyme_register)
+            output_filename = f'{"_".join(enzyme_names)}_peptides_sequential_digest.txt'
+            sequential_output_writer(operations_log, enzyme_names, output_filename)
+            
+        else:
+            print("No valid enzymes were selected for sequential digestion.")
     else:
         print("Please choose a valid digestion mode from the list.")
    
@@ -108,15 +135,54 @@ def parallel_digestion(sequence, input_enzyme, enzyme_names, enzyme_register):
             'peptides': peptides_list_generator
        })
     output_filename = f'{"_".join(enzyme_names)}_peptides_parallel_digest.txt'
-    print(str(enzyme_names))
     parallel_output_writer(all_results, output_filename)
-    print(all_results)
+    
+def sequential_digestion(sequence, enzyme_names, enzyme_register):
+    current_sequence = [sequence]
+    operations_log = []
 
-   
+    for step_num, enzyme_name in enumerate(enzyme_names, 1):
+        enzyme_selection = enzyme_register[enzyme_name]
+        next_gen_peptides = []
 
-def sequential_digestion(formatted_fasta_file, enzyme_register):
-    print("Sequential digestion is not yet implemented.")
+        if step_num == 1:
+            # digest the full sequence once
+            cleavage_sites = enzyme_selection(sequence)
+            next_gen_peptides = peptide_generator(cleavage_sites, sequence)
+            operations_log.append({
+                'enzyme': enzyme_name,
+                'cleavage_sites': cleavage_sites,
+                'peptides_list': next_gen_peptides,
+                'is_first': True
+            })
+        else:
+            # digest each peptide produced in the previous step and collect all new peptides
+            per_peptide_details = []
+            for peptide in current_sequence:
+                cleavage_sites = enzyme_selection(peptide)
+                if cleavage_sites:
+                    produced = peptide_generator(cleavage_sites, peptide)
+                else:
+                    produced = [peptide]
+                per_peptide_details.append({
+                    'former_peptide': peptide,
+                    'cleavage_sites': cleavage_sites,
+                    'produced': produced
+                })
+                next_gen_peptides.extend(produced)
 
+            # store aggregated list of all peptides produced at this step
+            operations_log.append({
+                'enzyme': enzyme_name,
+                'is_first': False,
+                'all_peptides': next_gen_peptides,
+                'per_peptide': per_peptide_details
+            })
+
+        current_sequence = next_gen_peptides
+
+    return current_sequence, operations_log
+    
 def trypsin_logic(content):
     #This function splits the sequence according to the cleavage site. Mimics trypsin behaviour.
     cleavage_sites = []
@@ -184,7 +250,6 @@ def chymotrypsinh_logic(content):
         if cleavage:
             cleavage_sites.append(site + 1)
     return cleavage_sites
-
             
 def chymotrypsinl_logic(content):
     #This function splits the sequence according to the cleavage site. Mimics Chymotrypsin (low specificity) behaviour.
@@ -207,7 +272,6 @@ def chymotrypsinl_logic(content):
             cleavage_sites.append(site + 1)
     return cleavage_sites
 
-
 def pepsin_pH_1_3_logic(content):
     #This function splits the sequence according to the cleavage site. Mimics pepsin specificity under pH 1.3.
     cleavage_sites = []
@@ -225,8 +289,7 @@ def pepsin_pH_1_3_logic(content):
         if cleavage:
             cleavage_sites.append(site + 1)
     return cleavage_sites
-
-            
+          
 def pepsin_pH_2_logic(content):
     #This function splits the sequence according to the cleavage site. Mimics pepsin specificity under pH>2.
     cleavage_sites = []
@@ -245,7 +308,6 @@ def pepsin_pH_2_logic(content):
             cleavage_sites.append(site + 1)
     return cleavage_sites
             
-
 def papain_logic(content):
     #This function splits the sequence according to the cleavage site. Mimics papain behaviour.
     cleavage_sites = []
@@ -280,9 +342,10 @@ def output_writer_single(peptides_list, cleavage_sites, output_filename):
         print(f"Results written to {output_filename}")
         return outfile
 
-def parallel_output_writer( all_results, output_filename):
+def parallel_output_writer(all_results, output_filename):
     with open(output_filename, "w") as outfile:
-        for i, single_result in enumerate(all_results):
+        for _, single_result in enumerate(all_results):
+            
             enzyme_name = single_result['enzyme']
             peptides_list = single_result['peptides']
             cleavage_sites = single_result['cleavage_sites']
@@ -294,5 +357,39 @@ def parallel_output_writer( all_results, output_filename):
             outfile.write(f"The site-peptide relationship: {dict(zip(peptides_list, cleavage_sites))}\n\n")
         print(f"Results written to {output_filename}")
         return outfile
+
+def sequential_output_writer(operations_log, enzyme_names, output_filename):
+    
+    with open(output_filename, "w") as outfile:
+
+        outfile.write(f"Enzyme cascade: {' → '.join(enzyme_names)}\n")
+        outfile.write(f"Number of digestions: {len(operations_log)}\n\n")
+
+        for digestion in operations_log:
+            if digestion.get('is_first'):
+                cleavage_sites = digestion.get('cleavage_sites', [])
+                peptides_list = digestion.get('peptides_list', [])
+                outfile.write(f"The quantity of cleavage sites: {len(cleavage_sites)}\n\n")
+                outfile.write(f"The number of peptides: {len(peptides_list)}\n\n")
+                outfile.write(f"The peptides list: {peptides_list}\n\n")
+                outfile.write(f"The cleavage sites list: {cleavage_sites}\n\n")
+                outfile.write(f"The site-peptide relationship: {dict(zip(peptides_list, cleavage_sites))}\n\n")
+            else:
+                enzyme_name = digestion.get('enzyme', 'Unknown')
+                all_peptides = digestion.get('all_peptides', [])
+                outfile.write(f"Enzyme: {enzyme_name}\n\n")
+                outfile.write(f"The number of peptides produced in this step: {len(all_peptides)}\n\n")
+                outfile.write(f"All peptides (aggregated) from this step: {all_peptides}\n\n")
+                # optional: also print per-peptide breakdown for debugging / detail
+                per_peptide = digestion.get('per_peptide', [])
+                if per_peptide:
+                    outfile.write("Per-peptide breakdown:\n")
+                    for entry in per_peptide:
+                        outfile.write(f"  From '{entry['former_peptide']}' -> {entry['produced']} (cleavage sites: {entry['cleavage_sites']})\n")
+                    outfile.write("\n")
+                
+        print(f"Results written to {output_filename}")
+        return outfile
+
 if __name__ == "__main__":
     main()
