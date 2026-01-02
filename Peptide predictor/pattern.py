@@ -21,7 +21,7 @@ def main():
     Enter the number of digestion mode:""")
 
     if digestion_mode == "1":
-        input_enzyme = input("""Choose the enzyme frome the list below. 
+        input_enzyme = input("""Choose the enzyme from the list below. 
     Arg-C proteinase 
     Asp-N endopeptidase                     
     Trypsin 
@@ -37,7 +37,7 @@ def main():
             sys.exit("Please choose a valid enzyme. Write the name exactly as shown in the list.")
             
     elif digestion_mode == "2":
-        input_enzyme = input("""Choose the enzyme frome the list below. 
+        input_enzyme = input("""Choose the enzyme from the list below. 
     Arg-C proteinase 
     Asp-N endopeptidase                     
     Trypsin 
@@ -65,7 +65,7 @@ def main():
             print("No valid enzymes were selected for parallel digestion.")
         
     elif digestion_mode == "3":
-        input_enzyme = input("""Choose the enzyme frome the list below. 
+        input_enzyme = input("""Choose the enzyme from the list below. 
     Arg-C proteinase 
     Asp-N endopeptidase                     
     Trypsin 
@@ -87,7 +87,7 @@ def main():
             else:
                 print(f"{enzyme} is not a valid enzyme. Please write the name exactly as shown in the list.")
         if correct_enzymes:
-            final_peptides, operations_log = sequential_digestion(sequence, correct_enzymes, enzyme_register)
+            _, operations_log = sequential_digestion(sequence, correct_enzymes, enzyme_register)
             output_filename = f'{"_".join(enzyme_names)}_peptides_sequential_digest.txt'
             sequential_output_writer(operations_log, enzyme_names, output_filename)
             
@@ -107,13 +107,16 @@ def remove_header_fasta(input_file, formatted_fasta_file):
                         outfile.write(line.strip())
 
     except FileNotFoundError:
-        print("The file was not found.")
+        sys.exit("The file was not found. Check the name of the file.")
 
 def sequence_maker(formatted_fasta_file):
     # This function reads the formatted FASTA file and returns the sequence as a single string.
-    with open(formatted_fasta_file, "r") as infile:
-        content = infile.read()
-    return str(content)
+    try:
+        with open(formatted_fasta_file, "r") as infile:
+            content = infile.read()
+            return str(content)
+    except FileNotFoundError:
+        sys.exit("The file was not found. Checm the name of the file")
 
 def single_digestion(sequence, input_enzyme, enzyme_register):
     enzyme_selection = enzyme_register[input_enzyme]
