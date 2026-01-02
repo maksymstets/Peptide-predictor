@@ -1,9 +1,14 @@
 Peptide-predictor
+
 That is a script to predict peptides obtained after an action of different proteinases. This software was heavily inspired by PeptideCutter tool from Expasy (https://web.expasy.org/peptide_cutter/).
 
-Input/output The script can accept FASTA files with one record as an input. The output of the script creates 2 text files: "formatted_sequence.txt", which contains pure aminoacid sequence without FASTA header and file with the results of protein digestion.
+Input/output 
 
-Example of usage The script provides 3 ways to digest a protein: single digestion, parallel digestion and sequential digestion.
+The script can accept FASTA files with one record as an input. The output of the script creates 2 text files: "formatted_sequence.txt", which contains pure aminoacid sequence without FASTA header and file with the results of protein digestion.
+
+Example of usage 
+
+The script provides 3 ways to digest a protein: single digestion, parallel digestion and sequential digestion.
 
 Single digestion mode cleaves protein with only one user-selected enzyme. The outfile contains the number of peptides obtained, the quantity of cleavage sites, the list of an actual peptides, the cleavages sites list and the site-peptide relationship.
 
