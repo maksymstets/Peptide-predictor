@@ -7,6 +7,16 @@ The script can accept FASTA files with one or multiple records as an input. The 
 **"<Enzyme_chosen>_peptides_<Digestion_mode>_from_<Protein_description_from_FASTA_header>"**. That means that user can easily distinguish the different files just by reading the name of the file. It already contains the nme of the enzyme which digests the target protein, digestion mode, and protein description from FASTA header.  Each file is in separate folder: 
 **"<Enzyme_chosen>_peptides_<Digestion_mode>_from_<Protein_description_from_FASTA_header>datetime"**. All result folders are in folder "results", which creates during the first run of the program.
 
+Enzymes available:
+1. Arg-C_proteinase 
+2. Asp-N_endopeptidase 
+3. Chymotrypsin_high_specificity
+4. Chymotrypsin_low_specificity                                               
+5. Trypsin 
+6. Papain
+7. Pepsin_pH1.3
+8. Pepsin_pH_2
+
 ## Example of usage
 The script provides 3 modes to digest a protein: single digestion, parallel digestion and sequential digestion. All modes need user to input the name of FASTA file ("filename.fasta"), choose the number wich represents the digestion mode and enter the number which represents the enzyme/enzymes wanted. User can input via CLI or via interactive prompt. Interactive propmpt is recommended for a first-time use to familiarize with workflow of the program. CLI input also allows for multiple files to analyse without the need for specific Bash script. Example of multifile CLI input: 
 ```
@@ -56,7 +66,8 @@ python project.py --input_files sequence.fasta --digestion_mode 3 --input_enzyme
 
 [1/1] Processed accession number: ABR21772.1
 ```
-All snippet commands and results are written for the test file **sequence.fasta**.  You can use it to test the script. There is also a result file example to look: **Trypsin_ArgC_proteinase_peptides_Sequential_digest_from_conglutin_beta_Lupinus_angustifolius.pdf**
+All snippet commands and results are written for the test file **sequence.fasta**.  You can use it to test the script. 
+There is also a result file example to look: **Trypsin_ArgC_proteinase_peptides_Sequential_digest_from_conglutin_beta_Lupinus_angustifolius.pdf**
 ## Requirements:
 Python 3.10.12 (no tests conducted to assure compatibility with previous or next versions) \
 biopython==1.86\
