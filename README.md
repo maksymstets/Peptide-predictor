@@ -1,5 +1,5 @@
 # Peptide predictor
-#### Video Demo: to be created 
+#### Video Demo: https://youtu.be/e5vSPkWIlJ0?si=TkNYAqvFqJXmPGhB
 That is a script to predict peptides obtained after an action of different proteinases. This software  was heavily inspired by PeptideCutter tool from Expasy (https://web.expasy.org/peptide_cutter/).
 
 ## Input/output
